@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="nl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Wie is de Darter? 🎯</title>
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:flex;justify-content:center;align-items:center;padding:16px;background:linear-gradient(135deg,#090f2e,#24105b 40%,#063b55);font-family:Arial,sans-serif;color:#f7f8fb}
+.app{width:min(820px,100%);background:linear-gradient(145deg,#1c2450,#102b43);border:2px solid #7c4dff;border-radius:24px;padding:24px;box-shadow:0 0 35px #7c4dff55;text-align:center}
+h1{margin:0;color:#ffdc4d;font-size:clamp(28px,5vw,42px);text-shadow:0 0 14px #ff8c0055}.sub{color:#c9e9ff;margin:8px 0 18px}
+.stats{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:18px}.pill{background:linear-gradient(90deg,#5a26bb,#087fa5);padding:10px 16px;border-radius:12px;font-weight:bold;box-shadow:0 4px 12px #0003}.pill span{color:#ffdc4d}
+.panel{background:linear-gradient(145deg,#202e60,#143c53);border:1px solid #3e83b5;border-radius:18px;padding:20px;max-width:660px;margin:auto}
+.target{font-size:24px;font-weight:bold;color:#6df5d3;margin:4px 0 12px}.desc{color:#d6eaff;line-height:1.5;margin-bottom:16px}
+.entry{position:relative;display:flex;gap:9px}.entry input{flex:1;min-width:0;padding:14px;border-radius:11px;border:2px solid #32d6ff;background:#091c36;color:white;font-size:16px;box-shadow:inset 0 0 9px #32d6ff20}.entry input:focus{outline:2px solid #ffdc4d}
+.entry button,.btn{border:0;border-radius:11px;padding:12px 17px;background:linear-gradient(90deg,#ffb000,#ff4e88);color:#1c1638;font-weight:bold;font-size:15px;cursor:pointer;transition:transform .15s,filter .15s}.entry button:hover,.btn:hover{transform:translateY(-2px);filter:brightness(1.12)}
+.suggestions{display:none;text-align:left;margin-top:6px;background:#091c36;border:1px solid #32d6ff;border-radius:10px;overflow:hidden;max-height:200px;overflow-y:auto}.suggestions.show{display:block}.suggestion{padding:10px 13px;cursor:pointer;color:#e7f8ff;border-bottom:1px solid #254a70;line-height:1.35}.suggestion:last-child{border-bottom:0}.suggestion:hover,.suggestion.active{background:#5428a5;color:#ffdc4d}
+.hints{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:17px;text-align:left}.hint{padding:14px;background:linear-gradient(135deg,#253e77,#14536a);border-radius:12px;border:1px solid #4288b8;animation:reveal .3s ease}.hint label{display:block;font-size:13px;color:#9fe8ff;margin-bottom:5px}.hint strong{font-size:17px}.hint .status{display:block;margin-top:5px;font-size:14px;font-weight:bold}
+@keyframes reveal{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.message{min-height:28px;margin:14px 0 4px;color:#ffdc4d;font-weight:bold}.buttons{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:14px}.btn.alt{background:linear-gradient(90deg,#32d6ff,#6df5d3);color:#10213d}.note{font-size:12px;color:#a9d6f2;margin-top:17px;line-height:1.45}
+@media(max-width:520px){.app{padding:15px}.panel{padding:14px}.hints{grid-template-columns:1fr}.entry{flex-direction:column}}
+</style></head>
+<body><main class="app">
+<h1>🎯 Wie is de Darter?</h1><p class="sub">Raad de geheime speler met hints!</p>
+<div class="stats"><div class="pill">Pogingen: <span id="tries">0</span></div><div class="pill">Gewonnen: <span id="wins">0</span></div><div class="pill">Spelers: <span>60</span></div></div>
+<section class="panel">
+<div class="target">🔎 Wie is de geheime darter?</div>
+<p class="desc">Typ een deel van een naam en selecteer de darter uit de suggesties. De bijnamen staan ook bij de spelers. De hints vergelijken jouw gok met de geheime darter. Ranking-uitleg: #38 staat HOGER dan #40, omdat #1 de beste plek is. Leeftijd vertelt of de geheime darter ouder of jonger is; bij land staat duidelijk of het hetzelfde land is.</p>
+<div class="entry"><input id="guess" placeholder="Zoek bijvoorbeeld: Gerw..." autocomplete="off" aria-label="Zoek darter"><button id="submit">Check gok</button></div>
+<div class="suggestions" id="suggestions"></div>
+<div class="message" id="message" aria-live="polite">Begin met typen om een speler te zoeken.</div>
+<div class="hints" id="hints"></div>
+<div class="buttons"><button class="btn" id="new">🎲 Nieuwe geheime darter</button><button class="btn alt" id="giveup">🏳️ Geef antwoord</button></div>
+</section>
+<p class="note">De game bevat de top 60 van de PDC Order of Merit (stand rond 5 november 2026). Leeftijden zijn opgenomen als huidige leeftijd en rangnummers kunnen veranderen. Demo-project voor school.</p>
+</main>
+<script>
+// Order of Merit names/ranks reflect the published live table around Nov 5, 2026.
+// Country and age are included for the gameplay data.
+const roster=[
+{name:"Luke Littler",country:"Engeland",age:19,rank:1},
+{name:"Luke Humphries",country:"Engeland",age:31,rank:2},
+{name:"Gian van Veen",country:"Nederland",age:24,rank:3},
+{name:"Gerwyn Price",country:"Wales",age:41,rank:4},
+{name:"Jonny Clayton",country:"Wales",age:52,rank:5},
+{name:"Ross Smith",country:"Engeland",age:37,rank:6},
+{name:"James Wade",country:"Engeland",age:43,rank:7},
+{name:"Josh Rock",country:"Noord-Ierland",age:25,rank:8},
+{name:"Stephen Bunting",country:"Engeland",age:41,rank:9},
+{name:"Danny Noppert",country:"Nederland",age:35,rank:10},
+{name:"Michael van Gerwen",country:"Nederland",age:37,rank:11},
+{name:"Nathan Aspinall",country:"Engeland",age:35,rank:11},
+{name:"Wessel Nijman",country:"Nederland",age:26,rank:13},
+{name:"Gary Anderson",country:"Schotland",age:55,rank:14},
+{name:"Ryan Searle",country:"Engeland",age:39,rank:15},
+{name:"Chris Dobey",country:"Engeland",age:36,rank:16},
+{name:"Luke Woodhouse",country:"Engeland",age:38,rank:17},
+{name:"Jermaine Wattimena",country:"Nederland",age:38,rank:18},
+{name:"Krzysztof Ratajski",country:"Polen",age:49,rank:19},
+{name:"Martin Schindler",country:"Duitsland",age:30,rank:20},
+{name:"Dirk van Duijvenbode",country:"Nederland",age:34,rank:21},
+{name:"Damon Heta",country:"Australië",age:38,rank:21},
+{name:"Kevin Doets",country:"Nederland",age:28,rank:23},
+{name:"Rob Cross",country:"Engeland",age:35,rank:24},
+{name:"Ryan Joyce",country:"Engeland",age:40,rank:25},
+{name:"Cameron Menzies",country:"Schotland",age:36,rank:26},
+{name:"Andrew Gilding",country:"Engeland",age:55,rank:27},
+{name:"Niels Zonneveld",country:"Nederland",age:27,rank:28},
+{name:"William O'Connor",country:"Ierland",age:39,rank:29},
+{name:"Daryl Gurney",country:"Noord-Ierland",age:39,rank:29},
+{name:"Dave Chisnall",country:"Engeland",age:46,rank:31},
+{name:"Joe Cullen",country:"Engeland",age:36,rank:32},
+{name:"Mike De Decker",country:"België",age:30,rank:33},
+{name:"Niko Springer",country:"Duitsland",age:25,rank:34},
+{name:"Peter Wright",country:"Schotland",age:56,rank:35},
+{name:"Ricardo Pietreczko",country:"Duitsland",age:32,rank:36},
+{name:"Michael Smith",country:"Engeland",age:35,rank:37},
+{name:"Justin Hood",country:"Engeland",age:32,rank:38},
+{name:"Jeffrey de Graaf",country:"Zweden",age:35,rank:39},
+{name:"Callan Rydz",country:"Engeland",age:27,rank:40},
+{name:"Mickey Mansell",country:"Noord-Ierland",age:52,rank:41},
+{name:"Karel Sedlacek",country:"Tsjechië",age:47,rank:42},
+{name:"Martin Lukeman",country:"Engeland",age:41,rank:43},
+{name:"Kim Huybrechts",country:"België",age:40,rank:44},
+{name:"Scott Williams",country:"Wales",age:35,rank:45},
+{name:"James Hurrell",country:"Engeland",age:42,rank:46},
+{name:"Raymond van Barneveld",country:"Nederland",age:59,rank:47},
+{name:"Brendan Dolan",country:"Noord-Ierland",age:52,rank:48},
+{name:"Madars Razma",country:"Letland",age:38,rank:49},
+{name:"Connor Scutt",country:"Engeland",age:29,rank:50},
+{name:"Sebastian Bialecki",country:"Polen",age:22,rank:51},
+{name:"Ricky Evans",country:"Engeland",age:35,rank:52},
+{name:"Gabriel Clemens",country:"Duitsland",age:43,rank:53},
+{name:"Ritchie Edhouse",country:"Engeland",age:42,rank:54},
+{name:"Mensur Suljovic",country:"Oostenrijk",age:54,rank:55},
+{name:"Keane Barry",country:"Ierland",age:24,rank:56},
+{name:"Ian White",country:"Engeland",age:55,rank:57},
+{name:"Richard Veenstra",country:"Nederland",age:44,rank:58},
+{name:"Bradley Brooks",country:"Engeland",age:26,rank:59},
+{name:"Dimitri Van den Bergh",country:"België",age:32,rank:60}
+];
+const nicknames={"Luke Littler":"The Nuke","Luke Humphries":"Cool Hand Luke","Gian van Veen":"The Giant","Gerwyn Price":"The Iceman","Jonny Clayton":"The Ferret","Ross Smith":"Smudger","James Wade":"The Machine","Josh Rock":"Rocky","Stephen Bunting":"The Bullet","Danny Noppert":"The Freeze","Michael van Gerwen":"Mighty Mike","Nathan Aspinall":"The Asp","Wessel Nijman":"—","Gary Anderson":"The Flying Scotsman","Ryan Searle":"Heavy Metal","Chris Dobey":"Hollywood","Luke Woodhouse":"Woody","Jermaine Wattimena":"The Machine Gun","Krzysztof Ratajski":"The Polish Eagle","Martin Schindler":"The Wall","Dirk van Duijvenbode":"Aubergenius","Damon Heta":"The Heat","Kevin Doets":"Hawk Eye","Rob Cross":"Voltage","Ryan Joyce":"Relentless","Cameron Menzies":"Cammy","Andrew Gilding":"Goldfinger","Niels Zonneveld":"Triple Z","William O'Connor":"The Magpie","Daryl Gurney":"Superchin","Dave Chisnall":"Chizzy","Joe Cullen":"The Rockstar","Mike De Decker":"The Real Deal","Niko Springer":"Meenzer Bub","Peter Wright":"Snakebite","Ricardo Pietreczko":"Pikachu","Michael Smith":"Bully Boy","Justin Hood":"The Pocket Rocket","Jeffrey de Graaf":"—","Callan Rydz":"The Riot","Mickey Mansell":"Clonoe Cyclone","Karel Sedlacek":"Evil Charlie","Martin Lukeman":"Smash","Kim Huybrechts":"The Hurricane","Scott Williams":"Shaggy","James Hurrell":"Hillbilly","Raymond van Barneveld":"Barney","Brendan Dolan":"The History Maker","Madars Razma":"Latvian Razmatazz","Connor Scutt":"The Sniper","Sebastian Bialecki":"The Bolt","Ricky Evans":"Rapid","Gabriel Clemens":"German Giant","Ritchie Edhouse":"Madhouse","Mensur Suljovic":"The Gentle","Keane Barry":"Dynamite","Ian White":"Diamond","Richard Veenstra":"Flyers","Bradley Brooks":"Bam Bam","Dimitri Van den Bergh":"The Dream Maker"};
+roster.forEach(p=>p.nickname=nicknames[p.name]||'—');
+let target=null,tries=0,wins=0,finished=false,selected=null;
+const $=id=>document.getElementById(id);
+function norm(s){return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim()}
+function pickTarget(){target=roster[Math.floor(Math.random()*roster.length)];tries=0;finished=false;selected=null;$('tries').textContent=tries;$('guess').value='';$('hints').innerHTML='';$('suggestions').innerHTML='';$('suggestions').classList.remove('show');$('message').textContent='Nieuwe speler gekozen! Zoek een darter en doe een gok.';$('submit').disabled=false;$('guess').disabled=false}
+function relation(val,targetVal,rank=false){
+ if(val===targetVal)return ['Hetzelfde!','#6df5d3'];
+ if(rank){
+   // In de ranglijst betekent een kleiner rangnummer een hogere plek.
+   // Hint beschrijft de geheime darter ten opzichte van de gekozen gok.
+   return targetVal<val
+    ? ['De geheime darter staat HOGER op de ranking (dichter bij #1) ↑','#6df5d3']
+    : ['De geheime darter staat LAGER op de ranking (verder van #1) ↓','#ffb86b'];
+ }
+ // Hint beschrijft de geheime darter ten opzichte van de gekozen gok.
+ return targetVal>val
+  ? ['De geheime darter is OUDER ↑','#ffb86b']
+  : ['De geheime darter is JONGER ↓','#6df5d3'];
+}
+function card(label,display,status,color){return `<div class="hint"><label>${label}</label><strong>${display}</strong><span class="status" style="color:${color}">${status}</span></div>`}
+function updateSuggestions(){const query=norm($('guess').value),box=$('suggestions');selected=null;if(!query){box.innerHTML='';box.classList.remove('show');return}
+ const matches=roster.filter(p=>norm(p.name).includes(query)).slice(0,10);box.innerHTML='';
+ matches.forEach(p=>{const div=document.createElement('div');div.className='suggestion';div.innerHTML='<strong>'+p.name+'</strong><span style="display:block;color:#ffdc4d;font-weight:bold;font-size:13px">Bijnaam: '+p.nickname+'</span><span style="display:block;color:#a9eaff;font-size:12px">Plek op ranking: #'+p.rank+'</span>';div.onclick=()=>{selected=p;$('guess').value=p.name;box.classList.remove('show');box.innerHTML='';$('message').textContent='Geselecteerd: '+p.name+' ('+p.nickname+'). Klik op Check gok.'};box.appendChild(div)});
+ if(matches.length)box.classList.add('show');else box.classList.remove('show')}
+function submitGuess(){if(finished)return;const query=norm($('guess').value);if(!query){$('message').textContent='Typ een naam of een deel van een naam.';return}
+ const p=selected||roster.find(x=>norm(x.name)===query);if(!p){$('message').textContent='Selecteer een speler uit de suggesties. Typ eventueel meer letters.';return}
+ $('suggestions').classList.remove('show');tries++;$('tries').textContent=tries;
+ const ageRel=relation(p.age,target.age),rankRel=relation(p.rank,target.rank,true),countryOk=p.country===target.country,nameOk=p.name===target.name;
+ $('hints').innerHTML=card('Jouw gekozen darter',p.name,nameOk?'🎯 Dit is de geheime darter!':'❌ Dit is niet de geheime darter',nameOk?'#6df5d3':'#ff9e9e')+
+ card('BIJNAAM VAN DE DARTER',p.nickname,'Bijnaam: '+p.nickname,'#ffdc4d')+
+ card('Leeftijd van jouw gok',p.age+' jaar',ageRel[0],ageRel[1])+
+ card('Land van jouw gok',p.country,countryOk?'✅ De geheime darter komt uit hetzelfde land':'❌ De geheime darter komt uit een ander land',countryOk?'#6df5d3':'#ff9e9e')+
+ card('Ranking van jouw gok','PDC Order of Merit: #'+p.rank,rankRel[0],rankRel[1]);
+ if(nameOk){finished=true;wins++;$('wins').textContent=wins;$('message').textContent=`🎉 Goed geraden in ${tries} poging(en)!`;$('submit').disabled=true;$('guess').disabled=true}
+ else{$('message').textContent='Hints bijgewerkt! Gebruik ze voor je volgende gok.';$('guess').value='';selected=null;$('guess').focus()}}
+$('guess').addEventListener('input',updateSuggestions);$('submit').onclick=submitGuess;
+$('guess').addEventListener('keydown',e=>{if(e.key==='Enter'){if(selected)submitGuess();else{const first=$('suggestions').firstElementChild;if(first)first.click()}}});
+$('new').onclick=pickTarget;$('giveup').onclick=()=>{if(!target||finished)return;finished=true;$('message').textContent='Het antwoord was: '+target.name+'! Start een nieuwe ronde.';$('submit').disabled=true;$('guess').disabled=true;$('suggestions').classList.remove('show')};
+document.addEventListener('click',e=>{if(!e.target.closest('.entry')&&!e.target.closest('.suggestions'))$('suggestions').classList.remove('show')});pickTarget();
+</script></body></html>
